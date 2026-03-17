@@ -11,118 +11,50 @@ import streamlit.components.v1 as components
 st.set_page_config(
     page_title="Global Data Management",
     page_icon="📊",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# ==================== HIDE STREAMLIT UI ELEMENTS ====================
+# ==================== MINIMAL CSS - KEEPS SIDEBAR TOGGLE ====================
 hide_streamlit_style = """
 <style>
-    /* Hide the entire Streamlit header */
-    header[data-testid="stHeader"] {
-        display: none !important;
-        height: 0 !important;
-    }
-    
-    /* Hide the decorator (GitHub icon) */
-    .stDeployButton {
-        display: none !important;
-    }
-    
-    /* Hide the main menu button (hamburger menu) */
-    #MainMenu {
-        visibility: hidden !important;
-        display: none !important;
-    }
-    
-    /* Hide the footer */
-    footer {
-        visibility: hidden !important;
-        display: none !important;
-    }
-    
-    /* Hide "Made with Streamlit" footer text */
-    footer:after {
-        content: none !important;
-        display: none !important;
-    }
-    
-    /* Hide the toolbar (Fork on GitHub button) */
-    .stToolbar {
-        display: none !important;
-    }
-    
-    /* Hide any GitHub related links */
-    a[href*='github.com/streamlit'] {
-        display: none !important;
-    }
-    
-    /* Hide View app source */
-    ._profilePreview_g8x02_53 {
-        display: none !important;
-    }
-    
-    /* Hide the floating action button */
-    .stActionButton {
-        display: none !important;
+    /* Hide GitHub fork button in header */
+    [data-testid="stToolbar"] {
+        display: none;
     }
     
     /* Hide deploy button */
-    button[title="Deploy this app"] {
-        display: none !important;
+    .stDeployButton {
+        display: none;
     }
     
-    /* Hide any element with Fork text */
-    div[title*="Fork"] {
-        display: none !important;
-    }
-    
-    /* Hide header decoration */
-    [data-testid="stDecoration"] {
-        display: none !important;
-    }
-    
-    /* Hide the entire top toolbar */
-    [data-testid="stToolbar"] {
-        display: none !important;
-    }
-    
-    /* Remove extra padding from top after hiding header */
-    .main > div:first-child {
-        padding-top: 1rem !important;
+    /* Hide Made with Streamlit footer */
+    footer {
+        visibility: hidden;
     }
     
     /* Hide viewer badge */
-    ._viewerBadge_1bx8f_121 {
-        display: none !important;
-    }
-    
-    /* Hide any cloud/deploy related buttons */
-    button[kind="header"] {
-        display: none !important;
-    }
-    
-    /* Additional selectors for GitHub elements */
-    .css-1rs6os {
-        display: none !important;
-    }
-    
-    div[class*="viewerBadge"] {
+    [data-testid="viewerBadge"] {
         display: none !important;
     }
     
     /* Hide manage app button */
-    button[title*="Manage"] {
+    button[title*="Manage app"] {
         display: none !important;
     }
     
-    /* Clean up the top spacing */
-    .block-container {
-        padding-top: 2rem !important;
+    /* Keep header for sidebar toggle */
+    header[data-testid="stHeader"] {
+        background-color: rgba(255, 255, 255, 0.0);
+    }
+    
+    /* Style sidebar */
+    section[data-testid="stSidebar"] > div {
+        padding-top: 2rem;
     }
 </style>
 """
 
-# Apply the CSS globally
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Power BI URL
@@ -189,8 +121,13 @@ def signup(username, password):
 
 # ============ DATA FUNCTIONS ============
 def load_data():
-    if DATA_FILE.exists():
-        return pd.read_excel(DATA_FILE)
+    try:
+        if DATA_FILE.exists():
+            return pd.read_excel(DATA_FILE)
+    except:
+        pass
+    
+    # Create sample data if file doesn't exist
     df = pd.DataFrame({
         "ID": [1, 2, 3, 4, 5],
         "Product": ["Laptop", "Mouse", "Keyboard", "Monitor", "Headphones"],
@@ -208,7 +145,7 @@ def save_data(df):
     df.to_excel(DATA_FILE, index=False)
 
 
-# ============ SESSION ============
+# ============ SESSION STATE ============
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user" not in st.session_state:
@@ -219,22 +156,20 @@ if "role" not in st.session_state:
 
 # ============ LOGIN PAGE ============
 def show_login():
-    # Re-apply CSS on login page to ensure it's hidden
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
         st.title("🔐 Global Data Management")
+        st.markdown("---")
         
         tab1, tab2 = st.tabs(["🔑 Login", "📝 Sign Up"])
         
         with tab1:
             st.subheader("Welcome Back!")
             with st.form("login_form"):
-                username = st.text_input("Username")
-                password = st.text_input("Password", type="password")
-                submitted = st.form_submit_button("Login", use_container_width=True)
+                username = st.text_input("Username", placeholder="Enter your username")
+                password = st.text_input("Password", type="password", placeholder="Enter your password")
+                submitted = st.form_submit_button("Login", use_container_width=True, type="primary")
                 
                 if submitted:
                     if username and password:
@@ -243,57 +178,58 @@ def show_login():
                             st.session_state.logged_in = True
                             st.session_state.user = username
                             st.session_state.role = role
+                            st.success(f"Welcome {username}!")
                             st.rerun()
                         else:
-                            st.error("Invalid username or password")
+                            st.error("❌ Invalid username or password")
                     else:
-                        st.warning("Please enter username and password")
+                        st.warning("⚠️ Please enter username and password")
         
         with tab2:
-            st.subheader("Create Account")
+            st.subheader("Create New Account")
             with st.form("signup_form"):
-                new_user = st.text_input("Choose Username")
-                new_pass = st.text_input("Choose Password", type="password")
-                confirm = st.text_input("Confirm Password", type="password")
-                submitted = st.form_submit_button("Create Account", use_container_width=True)
+                new_user = st.text_input("Choose Username", placeholder="At least 3 characters")
+                new_pass = st.text_input("Choose Password", type="password", placeholder="At least 4 characters")
+                confirm = st.text_input("Confirm Password", type="password", placeholder="Re-enter password")
+                submitted = st.form_submit_button("Create Account", use_container_width=True, type="primary")
                 
                 if submitted:
                     if not new_user or not new_pass or not confirm:
-                        st.warning("Please fill all fields")
+                        st.warning("⚠️ Please fill all fields")
                     elif new_pass != confirm:
-                        st.error("Passwords do not match")
+                        st.error("❌ Passwords do not match")
                     else:
                         ok, msg = signup(new_user, new_pass)
                         if ok:
-                            st.success(msg + "! Please login.")
+                            st.success(f"✅ {msg}! Please login now.")
                         else:
-                            st.error(msg)
+                            st.error(f"❌ {msg}")
 
 
 # ============ DASHBOARD PAGE ============
 def show_dashboard():
-    # Re-apply CSS to ensure consistency
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    
     st.title("📊 Analytics Dashboard")
     st.markdown("---")
     
-    col1, col2 = st.columns([3, 1])
+    # Info and Download button
+    col1, col2 = st.columns([4, 1])
     
     with col1:
-        st.info("💡 Click download button to save dashboard")
+        st.info("📌 Interactive Power BI Dashboard - Click download to save as PDF")
     
     with col2:
         download_html = f"""
         <a href="{POWERBI_URL}" target="_blank" 
-           style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                  color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; 
-                  font-weight: bold; text-align: center;">
-           📥 Download Dashboard
+           style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                  color: white; padding: 12px 24px; text-decoration: none; 
+                  border-radius: 8px; font-weight: bold; display: inline-block;
+                  text-align: center; width: 100%;">
+           📥 Download
         </a>
         """
         st.markdown(download_html, unsafe_allow_html=True)
     
+    # Embed Power BI Dashboard
     dashboard_embed = f"""
     <iframe 
         src="{POWERBI_URL}"
@@ -302,36 +238,35 @@ def show_dashboard():
         style="border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
     </iframe>
     """
-    
     components.html(dashboard_embed, height=620)
 
 
 # ============ VIEW DATA PAGE ============
 def show_view_data():
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    
     st.title("📋 View Data")
     st.markdown("---")
     
     df = load_data()
     
     if df.empty:
-        st.warning("No data available")
+        st.warning("⚠️ No data available")
         return
     
+    # Filters
     col1, col2, col3 = st.columns(3)
     
     with col1:
         cats = ["All"] + list(df["Category"].unique()) if "Category" in df.columns else ["All"]
-        cat = st.selectbox("Category", cats)
+        cat = st.selectbox("Filter by Category", cats)
     
     with col2:
         regs = ["All"] + list(df["Region"].unique()) if "Region" in df.columns else ["All"]
-        reg = st.selectbox("Region", regs)
+        reg = st.selectbox("Filter by Region", regs)
     
     with col3:
-        search = st.text_input("Search")
+        search = st.text_input("🔎 Search", placeholder="Type to search...")
     
+    # Apply filters
     filtered = df.copy()
     if cat != "All":
         filtered = filtered[filtered["Category"] == cat]
@@ -342,69 +277,89 @@ def show_view_data():
         filtered = filtered[mask]
     
     st.markdown("---")
-    st.dataframe(filtered, use_container_width=True, hide_index=True)
     
+    # Display data
+    st.subheader(f"📊 Data Table ({len(filtered)} records)")
+    st.dataframe(filtered, use_container_width=True, hide_index=True, height=400)
+    
+    # Statistics
     st.markdown("---")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Records", len(filtered))
-    c2.metric("Columns", len(df.columns))
-    if "Price" in filtered.columns:
-        c3.metric("Avg Price", f"${filtered['Price'].mean():.2f}")
-    if "Stock" in filtered.columns:
-        c4.metric("Total Stock", int(filtered['Stock'].sum()))
-
-
-# ============ DOWNLOAD PAGE ============
-def show_download():
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
     
+    with col1:
+        st.metric("Total Records", len(filtered))
+    with col2:
+        st.metric("Total Columns", len(df.columns))
+    with col3:
+        if "Price" in filtered.columns:
+            st.metric("Avg Price", f"${filtered['Price'].mean():.2f}")
+    with col4:
+        if "Stock" in filtered.columns:
+            st.metric("Total Stock", int(filtered['Stock'].sum()))
+
+
+# ============ DOWNLOAD DATA PAGE ============
+def show_download():
     st.title("📥 Download Data")
     st.markdown("---")
     
     df = load_data()
     
     if df.empty:
-        st.warning("No data available")
+        st.warning("⚠️ No data available")
         return
     
+    # Preview
+    st.subheader("📋 Data Preview")
     st.dataframe(df.head(10), use_container_width=True, hide_index=True)
-    st.caption(f"Showing 10 of {len(df)} records")
+    st.caption(f"Showing first 10 of {len(df)} records")
     
     st.markdown("---")
+    
+    # Download options
+    st.subheader("📥 Download Options")
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📊 Excel")
+        st.markdown("#### 📊 Excel Format")
+        st.write("Best for Excel, Google Sheets")
         buf = BytesIO()
         df.to_excel(buf, index=False)
         buf.seek(0)
         st.download_button(
             "⬇️ Download Excel",
             buf,
-            "data.xlsx",
+            "global_data.xlsx",
+            mime="application/vnd.ms-excel",
             use_container_width=True,
             type="primary"
         )
     
     with col2:
-        st.subheader("📄 CSV")
+        st.markdown("#### 📄 CSV Format")
+        st.write("Best for data analysis tools")
         st.download_button(
             "⬇️ Download CSV",
             df.to_csv(index=False),
-            "data.csv",
+            "global_data.csv",
+            mime="text/csv",
             use_container_width=True,
             type="primary"
         )
 
 
-# ============ ADMIN: UPLOAD ============
+# ============ ADMIN: UPLOAD DATA ============
 def show_upload():
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    
     st.title("📤 Upload Data")
     st.markdown("---")
     
-    st.info("Upload a CSV or Excel file to replace existing data")
+    if st.session_state.role != "admin":
+        st.error("❌ Access Denied: Admin privileges required")
+        st.info("Only administrators can upload data")
+        return
+    
+    st.info("📋 Upload CSV or Excel file to replace current data")
     
     file = st.file_uploader("Choose file", type=["csv", "xlsx", "xls"])
     
@@ -415,9 +370,13 @@ def show_upload():
             else:
                 df = pd.read_excel(file)
             
-            st.success(f"✅ Loaded {len(df)} records")
+            st.success(f"✅ File loaded: {len(df)} records, {len(df.columns)} columns")
+            
+            # Preview
+            st.subheader("Preview")
             st.dataframe(df, use_container_width=True, hide_index=True)
             
+            # Confirm buttons
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("✅ Confirm Upload", type="primary", use_container_width=True):
@@ -431,57 +390,58 @@ def show_upload():
             st.error(f"Error: {e}")
 
 
-# ============ ADMIN: MANAGE ============
+# ============ ADMIN: MANAGE DATA ============
 def show_manage():
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    
     st.title("📊 Manage Data")
     st.markdown("---")
+    
+    if st.session_state.role != "admin":
+        st.error("❌ Access Denied: Admin privileges required")
+        return
     
     df = load_data()
     
     if df.empty:
         st.warning("No data available")
-        if st.button("Create Sample Data", type="primary"):
+        if st.button("Create Sample Data"):
             save_data(load_data())
             st.rerun()
         return
     
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Records", len(df))
-    c2.metric("Columns", len(df.columns))
+    # Metrics
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Records", len(df))
+    col2.metric("Columns", len(df.columns))
     if "Price" in df.columns:
-        c3.metric("Avg Price", f"${df['Price'].mean():.2f}")
+        col3.metric("Avg Price", f"${df['Price'].mean():.2f}")
     if "Stock" in df.columns:
-        c4.metric("Total Stock", int(df['Stock'].sum()))
+        col4.metric("Total Stock", int(df['Stock'].sum()))
     
     st.markdown("---")
     
-    tab1, tab2 = st.tabs(["👁️ View", "✏️ Edit"])
+    # Edit data
+    st.subheader("✏️ Edit Data")
+    edited = st.data_editor(df, use_container_width=True, num_rows="dynamic", key="data_editor")
     
-    with tab1:
-        st.dataframe(df, use_container_width=True, hide_index=True)
-    
-    with tab2:
-        edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("💾 Save Changes", type="primary", use_container_width=True):
-                save_data(edited)
-                st.success("Changes saved!")
-                st.rerun()
-        with col2:
-            if st.button("🔄 Reset", use_container_width=True):
-                st.rerun()
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💾 Save Changes", type="primary", use_container_width=True):
+            save_data(edited)
+            st.success("Changes saved!")
+            st.rerun()
+    with col2:
+        if st.button("🔄 Reset", use_container_width=True):
+            st.rerun()
 
 
-# ============ ADMIN: USERS ============
+# ============ ADMIN: VIEW USERS ============
 def show_users():
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    
     st.title("👥 Registered Users")
     st.markdown("---")
+    
+    if st.session_state.role != "admin":
+        st.error("❌ Access Denied")
+        return
     
     data = load_users()
     users = data.get("users", [])
@@ -490,70 +450,105 @@ def show_users():
         st.warning("No users found")
         return
     
-    rows = []
+    # Create user dataframe
+    user_data = []
     for u in users:
-        rows.append({
+        user_data.append({
             "Username": u["username"],
             "Role": u["role"].upper(),
             "Created": u.get("created", "N/A")
         })
     
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-    st.metric("Total Users", len(users))
-
-
-# ============ MAIN ============
-def main():
-    # Apply CSS globally at the start
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+    df_users = pd.DataFrame(user_data)
+    st.dataframe(df_users, use_container_width=True, hide_index=True)
     
+    # User statistics
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Users", len(users))
+    col2.metric("Admins", len([u for u in users if u["role"] == "admin"]))
+    col3.metric("Regular Users", len([u for u in users if u["role"] == "user"]))
+
+
+# ============ MAIN APPLICATION ============
+def main():
+    # Initialize session
     if not st.session_state.logged_in:
         show_login()
         return
     
-    # Sidebar
+    # SIDEBAR NAVIGATION
     with st.sidebar:
-        st.title("📋 Menu")
+        st.title("📋 Navigation")
         st.markdown("---")
-        st.markdown(f"👤 **{st.session_state.user}**")
-        st.markdown(f"🔑 **{st.session_state.role.upper()}**")
+        
+        # User info
+        st.markdown(f"**👤 User:** {st.session_state.user}")
+        st.markdown(f"**🔑 Role:** {st.session_state.role.upper()}")
         st.markdown("---")
+        
+        # Navigation menu based on role
+        st.subheader("📍 Menu")
         
         if st.session_state.role == "admin":
-            pages = ["Upload Data", "Manage Data", "View Data", "Download Data", "View Users"]
+            # Admin menu
+            page_options = {
+                "📊 Dashboard": "dashboard",
+                "📋 View Data": "view",
+                "📥 Download Data": "download",
+                "📤 Upload Data": "upload",
+                "📊 Manage Data": "manage",
+                "👥 View Users": "users"
+            }
         else:
-            pages = ["Dashboard", "View Data", "Download Data"]
+            # User menu
+            page_options = {
+                "📊 Dashboard": "dashboard",
+                "📋 View Data": "view",
+                "📥 Download Data": "download"
+            }
         
-        page = st.radio("Navigate", pages)
+        # Page selection
+        selected = st.radio(
+            "Select Page",
+            list(page_options.keys()),
+            label_visibility="collapsed"
+        )
         
         st.markdown("---")
-        if st.button("🚪 Logout", use_container_width=True):
+        
+        # Logout button
+        if st.button("🚪 Logout", use_container_width=True, type="secondary"):
             st.session_state.logged_in = False
             st.session_state.user = None
             st.session_state.role = None
             st.rerun()
         
+        # Footer
         st.markdown("---")
-        st.caption(f"🕐 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        st.caption(f"🕐 {datetime.now().strftime('%H:%M')}")
+        st.caption(f"📅 {datetime.now().strftime('%Y-%m-%d')}")
     
-    # Page routing
-    if page == "Dashboard":
+    # MAIN CONTENT AREA - Page routing
+    page_key = page_options[selected]
+    
+    if page_key == "dashboard":
         show_dashboard()
-    elif page == "View Data":
+    elif page_key == "view":
         show_view_data()
-    elif page == "Download Data":
+    elif page_key == "download":
         show_download()
-    elif page == "Upload Data":
+    elif page_key == "upload":
         show_upload()
-    elif page == "Manage Data":
+    elif page_key == "manage":
         show_manage()
-    elif page == "View Users":
+    elif page_key == "users":
         show_users()
     
-    # Custom footer
+    # Footer
     st.markdown("---")
-    st.caption(f"© 2024 Global Data Management | Logged in as {st.session_state.user}")
+    st.caption(f"© 2024 Global Data Management System | Logged in as: {st.session_state.user}")
 
 
+# Run the app
 if __name__ == "__main__":
     main()
